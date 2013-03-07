@@ -26,7 +26,7 @@ int numlights=4; // number of elements of the arrays below
 boolean states[]={1,1,1,0}; // list of the light/relay states
 boolean blinkstates[]={1,1,1,0};  // list of which lights/relays should be in the blink cycle
 int pins[]={14,15,16,17}; // list of the light/relay pins
-char* lights[]={"red","yellow","green","beacon"}; // list of the "light" lables
+char* lights[]={"Warning","Now","green","beacon"}; // list of the "light" lables
 char secret[] = "obp123"; // change this to your own, better, password.
 int blinkc=1;
 int blinkmax=20000;
@@ -61,6 +61,18 @@ void setone(boolean light, int pin) { //turn on one light
   } else {
     digitalWrite(pin,LOW);
   }
+}
+
+void cid() {
+  digitalWrite(14,HIGH);
+  delay(2000);
+  digitalWrite(14,LOW);
+  digitalWrite(15,HIGH);
+  delay(2000);
+  digitalWrite(15,LOW);
+  digitalWrite(16,HIGH);
+  delay(2000);
+  digitalWrite(16,LOW);
 }
 
 void setstates(boolean newstate) { // set all the states to be on or off, used in blinking
@@ -186,7 +198,8 @@ void loop()
               client.print(lights[i]);
               client.println(" on<br>");
               if (auth){ //actually do it
-                states[i]=true;
+                //pb states[i]=true;
+                cid;
               } // end of "auth" 
             }  // end of "asked for this light"     
           }   // end of light loop
