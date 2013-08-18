@@ -17,17 +17,15 @@
 // Reserved IP? 10.165.12.240
 // MAC 90-A2-DA-00-47-C6
 byte mac[] = { 0x90, 0xA2, 0xDA, 0x00, 0x47, 0xC6 };
-byte ip[] = { 192, 168, 1, 18 };
+byte ip[] = { 10, 0, 0, 153 };
 EthernetServer server(80);
 
 /************ light stuff **************/
-boolean auth= false;
 int numlights=4; // number of elements of the arrays below
 boolean states[]={1,1,1,0}; // list of the light/relay states
 boolean blinkstates[]={1,1,1,0};  // list of which lights/relays should be in the blink cycle
 int pins[]={14,15,16,17}; // list of the light/relay pins
 char* lights[]={"red","yellow","green","beacon"}; // list of the "light" lables
-char secret[] = "obp123"; // change this to your own, better, password.
 int blinkc=1;
 int blinkmax=20000;
 
@@ -74,7 +72,7 @@ void doform(EthernetClient client) {  // draw the form
   for (int i = 0; i < numlights; i++) { // loop through all the lights
     dobox(client,lights[i],states[i]);
   }
-  client.println("<input type='password' name='a'><br>");
+  client.println("<input type='submit' value='Submit' name='submit'>"); // we don't need the closing </input>?
   client.println("</form>");
 }
 
@@ -169,15 +167,8 @@ void loop()
           client.println("HTTP/1.1 200 OK");
           client.println("Content-Type: text/html");
           client.println();
-          auth= false;  // assume, until proven different, that the request is not authenticated
           for (int i = 0; i < numlights; i++) { // loop through all the lights...
             states[i]=false;  // ...and assume they are off
-          }
-          if (strstr(request, (const char *)secret) !=0) {
-            client.println("<h2>Authenticated</h2>");
-            auth= true;
-          } else{
-            client.println("<h2>Not Authenticated, so NOT...</h2>");
           }
           for (int i = 0; i < numlights; i++) { // loop through all the lights...
             states[i]=false;  // ...and assume they are off
@@ -185,39 +176,35 @@ void loop()
               client.print("Turning ");
               client.print(lights[i]);
               client.println(" on<br>");
-              if (auth){ //actually do it
-                states[i]=true;
-              } // end of "auth" 
+              states[i]=true;
             }  // end of "asked for this light"     
           }   // end of light loop
 
-          if (auth) { // now that all the colors are set, change the lights
-            setlights();
-            blinkc=0; // stop blinking
-            /*  if "error" is sent as part of the request, ignore everything and start the error blink */
-            if (strstr(request, "error") != 0) {
-              client.println("<h1>The request reported an error:<br>'");
-              client.print(request);
-              client.println("'</h1>");
-              blinkc=1; // restart the blinking
-              for (int i = 0; i < numlights; i++) { // loop through all the lights...
-                blinkstates[i]=false;  // ...and assume they are off
-              }
-              if (strstr(request, "error=1") != 0) { // if they reported an error state 1
-                blinkstates[1]=1; //yellow on
-              }
-              if (strstr(request, "error=2") != 0) { // if they reported an error state 2
-                blinkstates[0]=1; //red on
-              }
-              if (!(blinkstates[0] || blinkstates[1])) { // if they reported an error that wasn't listed above
-                blinkstates[0]=1; //red on
-                blinkstates[1]=1; // yellow on
-                blinkstates[2]=1; // green off
-              }
-              blinkmax=10000; // blink twice as fast
+          setlights();
+          blinkc=0; // stop blinking
+          /*  if "error" is sent as part of the request, ignore everything and start the error blink */
+          if (strstr(request, "error") != 0) {
+            client.println("<h1>The request reported an error:<br>'");
+            client.print(request);
+            client.println("'</h1>");
+            blinkc=1; // restart the blinking
+            for (int i = 0; i < numlights; i++) { // loop through all the lights...
+              blinkstates[i]=false;  // ...and assume they are off
             }
-
+            if (strstr(request, "error=1") != 0) { // if they reported an error state 1
+              blinkstates[1]=1; //yellow on
+            }
+            if (strstr(request, "error=2") != 0) { // if they reported an error state 2
+              blinkstates[0]=1; //red on
+            }
+            if (!(blinkstates[0] || blinkstates[1])) { // if they reported an error that wasn't listed above
+              blinkstates[0]=1; //red on
+              blinkstates[1]=1; // yellow on
+              blinkstates[2]=1; // green off
+            }
+            blinkmax=10000; // blink twice as fast
           }
+
           getlights(); // get the current settings before...
           doform(client); // ... drawing the form
         } else {
