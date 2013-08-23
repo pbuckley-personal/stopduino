@@ -8,13 +8,11 @@
  * Tutorial is at http://www.ladyada.net/learn/arduino/ethfiles.html
   */
 
-//#include <SdFat.h>
-// #include <SdFatUtil.h>
 #include <Ethernet.h>
 #include <SPI.h>
 
 /************ ETHERNET STUFF   ************/
-// Reserved IP? 10.165.12.240
+// No reserved IP at home, hope it's OK
 // MAC 90-A2-DA-00-47-C6
 byte mac[] = { 0x90, 0xA2, 0xDA, 0x00, 0x47, 0xC6 };
 byte ip[] = { 10, 0, 0, 153 };
@@ -22,20 +20,15 @@ EthernetServer server(80);
 
 /************ light stuff **************/
 int numlights=4; // number of elements of the arrays below
+int numopts=2; // we have 2 options:
+char* lopts[]={"5-min Warning","Come up NOW!"}; // 5-min warning, Come up NOW!
+boolean optstates[]={1,1}; // We set this via form and take action accordingly? Or I won't use it?
 boolean states[]={1,1,1,0}; // list of the light/relay states
-boolean blinkstates[]={1,1,1,0};  // list of which lights/relays should be in the blink cycle
+boolean blinkstates[]={0,1,0,0};  // list of which lights/relays should be in the blink cycle, limited to yellow-only now
 int pins[]={14,15,16,17}; // list of the light/relay pins
 char* lights[]={"red","yellow","green","beacon"}; // list of the "light" lables
 int blinkc=1;
 int blinkmax=20000;
-
-/************ SDCARD STUFF ************
-Sd2Card card;
-SdVolume volume;
-SdFile root;
-SdFile file;
-*/
-
 
 /*********** light/relay routines ****************/
 
@@ -43,6 +36,38 @@ void setlights() { // turn the lights on or off
   for (int i = 0; i < numlights; i++) { // loop through all the lights
     setone(states[i],pins[i]);
   }
+}
+
+void fivemin() { // progressively turn on green/yellow/red
+
+}
+
+void blinkem() { // blink the lights fn
+  if (blinkc == 1 ) { // turn on
+    Serial.println("On");
+    setstates(true);
+//    states[3]=false; // don't flash on the beacon, it's obnoxious.
+    setlights();
+    blinkc++;
+  } else if (blinkc == (blinkmax/2)) { // half way through, turn off
+    Serial.println("Off");
+    setstates(false);
+    setlights();
+  } else if (blinkc > blinkmax) { // reset loop
+    blinkc=1;
+  }
+  if (blinkc >1 ) { // increment loop if counter is set
+    blinkc++;
+  }
+}
+
+void upnow() { // blink the lights fast!
+  blinkmax=10000;
+  blinkstates[0]=1;
+  blinkstates[1]=1;
+  blinkstates[2]=1;
+  blinkstates[3]=0;
+  blinkem();
 }
 
 void getlights() { // turn the lights on or off
@@ -69,14 +94,17 @@ void setstates(boolean newstate) { // set all the states to be on or off, used i
 
 void doform(EthernetClient client) {  // draw the form
   client.println("<form action='b' action='get'>");
-  for (int i = 0; i < numlights; i++) { // loop through all the lights
-    dobox(client,lights[i],states[i]);
+  for (int i = 0; i < numopts; i++) { // loop through all the lights
+    dobox(client,lopts[i],states[i]);
   }
+  client.println("<p>");
   client.println("<input type='submit' value='Submit' name='submit'>"); // we don't need the closing </input>?
+  client.println("</p>");
   client.println("</form>");
 }
 
 void dobox(EthernetClient client,char item[], boolean checked) {  // draw a single checkbox
+  client.println("<p>");
   client.print("<input type='checkbox' name='c' value='");
   client.print(item);
   client.print("'");
@@ -86,6 +114,7 @@ void dobox(EthernetClient client,char item[], boolean checked) {  // draw a sing
   client.print(">");
   client.print(item);
   client.println("<br>");
+  client.println("</p>");
 }
 
 // How big our line buffer should be. 100 is plenty!
@@ -225,21 +254,6 @@ void loop()
  *  when first turned on, blink the lights
  *    once blinkc is set to 0, it won't blink any more.
  ******************************************/
-  if (blinkc == 1 ) { // turn on
-    Serial.println("On");
-    setstates(true);
-//    states[3]=false; // don't flash on the beacon, it's obnoxious.
-    setlights();
-    blinkc++;
-  } else if (blinkc == (blinkmax/2)) { // half way through, turn off
-    Serial.println("Off");
-    setstates(false);
-    setlights();
-  } else if (blinkc > blinkmax) { // reset loop
-    blinkc=1;
-  }
-  if (blinkc >1 ) { // increment loop if counter is set
-    blinkc++;
-  }
+  blinkem();
 }
 
