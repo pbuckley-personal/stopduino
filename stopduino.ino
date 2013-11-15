@@ -21,7 +21,7 @@ EthernetServer server(80);
 /************ light stuff **************/
 int numlights=4; // number of elements of the arrays below
 int numopts=2; // we have 2 options:
-char* lopts[]={"5-min Warning","Come up NOW!"}; // 5-min warning, Come up NOW!
+char* lopts[]={"warn","now"}; // 5-min warning, Come up NOW!
 boolean optstates[]={1,1}; // We set this via form and take action accordingly? Or I won't use it?
 boolean states[]={1,1,1,0}; // list of the light/relay states
 boolean blinkstates[]={0,1,0,0};  // list of which lights/relays should be in the blink cycle, limited to yellow-only now
@@ -199,6 +199,23 @@ void loop()
           for (int i = 0; i < numlights; i++) { // loop through all the lights...
             states[i]=false;  // ...and assume they are off
           }
+	  // I want to checkout the time before my changes to the doform, and view the request
+	  // going over the wire, then compare it to this one.
+	  // Maybe that will tell me what I'm missing in the client not being printed back to after Submit?
+	  // Orig request
+	  // GET http://10.0.0.153/b?c=red&c=yellow&c=green&a=obp123
+	  // New request
+	  // GET http://10.0.0.153/b?c=warn&submit=Submit
+	  if (strstr(request, lopts[0]) != 0){ // they chose 5-min Warning
+	    client.print("You have chosen ");
+	    client.print(lopts[0]);
+	    client.print(". <br>");
+	  }
+	  if (strstr(request, lopts[1]) != 0){ // they chose Come up NOW!
+	    client.print("You have chosen the magical ");
+	    client.print(lopts[1]);
+	    client.print(". <br>");
+	  }
           for (int i = 0; i < numlights; i++) { // loop through all the lights...
             states[i]=false;  // ...and assume they are off
             if (strstr(request, lights[i]) != 0){ // if they asked for this light
